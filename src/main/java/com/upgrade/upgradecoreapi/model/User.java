@@ -36,4 +36,8 @@ public class User {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "update_at", insertable = false, updatable = false)
+    private LocalDateTime updateAt;
+
 }
