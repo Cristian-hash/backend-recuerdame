@@ -1,6 +1,8 @@
 package com.upgrade.upgradecoreapi.controller;
 
+import com.upgrade.upgradecoreapi.dto.CreateSaleInvoiceRequest;
 import com.upgrade.upgradecoreapi.dto.RegisterPurchaseRequest;
+import com.upgrade.upgradecoreapi.model.Invoice;
 import com.upgrade.upgradecoreapi.model.User;
 import com.upgrade.upgradecoreapi.service.InvoiceService;
 import jakarta.validation.Valid;
@@ -16,6 +18,15 @@ import org.springframework.web.bind.annotation.*;
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
+
+    @PostMapping("/sale")
+    @PreAuthorize("hasAnyRole('VENTAS', 'FINANZAS', 'GERENCIA')")
+    public ResponseEntity<Invoice> createSaleInvoice(
+            @Valid @RequestBody CreateSaleInvoiceRequest request,
+            @AuthenticationPrincipal User user) {
+        Invoice createdInvoice = invoiceService.createSaleInvoice(request, user);
+        return ResponseEntity.status(201).body(createdInvoice);
+    }
 
     @PatchMapping("/{id}/approve-utility")
     @PreAuthorize("hasRole('GERENCIA')")

@@ -1,14 +1,18 @@
 package com.upgrade.upgradecoreapi.service;
 
+import com.upgrade.upgradecoreapi.dto.CreateSaleInvoiceRequest;
 import com.upgrade.upgradecoreapi.dto.RegisterPurchaseRequest;
+import com.upgrade.upgradecoreapi.model.BusinessEntity;
 import com.upgrade.upgradecoreapi.model.Invoice;
 import com.upgrade.upgradecoreapi.model.User;
+import com.upgrade.upgradecoreapi.repository.BusinessEntityRepository;
 import com.upgrade.upgradecoreapi.repository.InvoiceRepository;
 import com.upgrade.upgradecoreapi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Service
@@ -17,6 +21,61 @@ public class InvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final UserRepository userRepository;
+    private final BusinessEntityRepository businessEntityRepository;
+
+    @Transactional
+    public Invoice createSaleInvoice(CreateSaleInvoiceRequest request, User createdBy) {
+        BusinessEntity client = businessEntityRepository.findById(request.getClientId())
+                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + request.getClientId()));
+
+        if (!request.isDelivered()) {
+            throw new IllegalStateException("No se puede facturar si el producto no ha sido entregado (Descargado = NO).");
+        }
+
+        String finalObservations = request.getObservations() != null ? request.getObservations() : "";
+
+        if (client.getType() == BusinessEntity.EntityType.GOBIERNO) {
+            if (request.getSiafCode() == null || request.getSiafCode().isBlank()) {
+                throw new IllegalArgumentException("El código SIAF es obligatorio para ventas a Gobierno.");
+            }
+            if (request.getUnidadEjecutora() == null || request.getUnidadEjecutora().isBlank()) {
+                throw new IllegalArgumentException("La Unidad Ejecutora es obligatoria para ventas a Gobierno.");
+            }
+            if (request.getOrdenCompraFilePath() == null || request.getOrdenCompraFilePath().isBlank()) {
+                throw new IllegalArgumentException("El archivo de la Orden de Compra es obligatorio para ventas a Gobierno.");
+            }
+
+            String governmentObservation = String.format(
+                "Orden de Compra: %s OC %s /SIAF %s / UE %s / monto S/ %.2f // comision %s%% + S/ %.2f",
+                client.getBusinessName(),
+                request.getOcNumber(),
+                request.getSiafCode(),
+                request.getUnidadEjecutora(),
+                request.getTotalAmount(),
+                request.getCommissionPercentage() != null ? request.getCommissionPercentage().toString() : "0",
+                request.getCommissionAmount() != null ? request.getCommissionAmount() : BigDecimal.ZERO
+            );
+            finalObservations = governmentObservation + "\n" + finalObservations;
+        }
+
+        Invoice invoice = Invoice.builder()
+                .businessEntity(client)
+                .user(createdBy)
+                .invoiceNumber(request.getInvoiceNumber())
+                .issueDate(request.getIssueDate())
+                .dueDate(request.getDueDate())
+                .totalAmount(request.getTotalAmount())
+                .currentBalance(request.getTotalAmount())
+                .isDelivered(true)
+                .isPaid(false)
+                .type(Invoice.InvoiceType.VENTA)
+                .siafCode(request.getSiafCode())
+                .unidadEjecutora(request.getUnidadEjecutora())
+                .observations(finalObservations.trim())
+                .build();
+
+        return invoiceRepository.save(invoice);
+    }
 
     @Transactional
     public Invoice approveUtility(Long invoiceId, User approver) {
