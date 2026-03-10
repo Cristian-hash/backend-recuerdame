@@ -1,5 +1,6 @@
 package com.upgrade.upgradecoreapi.service;
 
+import com.upgrade.upgradecoreapi.dto.RegisterPurchaseRequest;
 import com.upgrade.upgradecoreapi.model.Invoice;
 import com.upgrade.upgradecoreapi.model.User;
 import com.upgrade.upgradecoreapi.repository.InvoiceRepository;
@@ -46,6 +47,29 @@ public class InvoiceService {
 
         invoice.setCreditoAprobadoPor(approver);
         invoice.setCreditoAprobadoAt(LocalDateTime.now());
+        return invoiceRepository.save(invoice);
+    }
+
+    @Transactional
+    public Invoice registerFinalPurchase(Long invoiceId, RegisterPurchaseRequest request) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new RuntimeException("Factura de compra no encontrada con ID: " + invoiceId));
+
+        if (invoice.getType() != Invoice.InvoiceType.COMPRA) {
+            throw new IllegalStateException("Esta operación solo es válida para facturas de tipo COMPRA.");
+        }
+
+        invoice.setOrdenVentaCode(request.getOrdenVentaCode());
+        invoice.setHasOrdenCompra(request.isHasOrdenCompra());
+        invoice.setHasGuiaRemision(request.isHasGuiaRemision());
+        invoice.setHasFactura(request.isHasFactura());
+
+        if (request.getFinalObservations() != null && !request.getFinalObservations().isBlank()) {
+            String existingObservations = invoice.getObservations() != null ? invoice.getObservations() : "";
+            String newObservations = existingObservations + "\n\n--- OBSERVACIÓN DE CIERRE (FINANZAS) ---\n" + request.getFinalObservations();
+            invoice.setObservations(newObservations.trim());
+        }
+
         return invoiceRepository.save(invoice);
     }
 }

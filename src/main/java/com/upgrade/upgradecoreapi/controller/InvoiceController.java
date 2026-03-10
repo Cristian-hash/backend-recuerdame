@@ -1,8 +1,9 @@
 package com.upgrade.upgradecoreapi.controller;
 
-import com.upgrade.upgradecoreapi.model.Invoice;
+import com.upgrade.upgradecoreapi.dto.RegisterPurchaseRequest;
 import com.upgrade.upgradecoreapi.model.User;
 import com.upgrade.upgradecoreapi.service.InvoiceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,5 +29,14 @@ public class InvoiceController {
     public ResponseEntity<String> approveCredit(@PathVariable Long id, @AuthenticationPrincipal User approver) {
         invoiceService.approveCredit(id, approver);
         return ResponseEntity.ok("Aprobación de crédito registrada por Finanzas.");
+    }
+
+    @PatchMapping("/{id}/register-purchase")
+    @PreAuthorize("hasRole('FINANZAS')")
+    public ResponseEntity<String> registerFinalPurchase(
+            @PathVariable Long id,
+            @Valid @RequestBody RegisterPurchaseRequest request) {
+        invoiceService.registerFinalPurchase(id, request);
+        return ResponseEntity.ok("Registro final de compra completado. Los 3 papeles han sido validados.");
     }
 }
