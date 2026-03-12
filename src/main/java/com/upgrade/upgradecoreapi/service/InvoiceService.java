@@ -29,6 +29,11 @@ public class InvoiceService {
         BusinessEntity client = businessEntityRepository.findById(request.getClientId())
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + request.getClientId()));
 
+        // Regla de Negocio H5: Bloqueo por defecto para Retail
+        if (client.getType() == BusinessEntity.EntityType.RETAIL && !request.isCreditApprovedByManagement()) {
+            throw new IllegalStateException("Crédito denegado para cliente Retail: Requiere autorización de Gerencia.");
+        }
+
         if (!request.isDelivered()) {
             throw new IllegalStateException("No se puede facturar si el producto no ha sido entregado (Descargado = NO).");
         }
@@ -46,7 +51,6 @@ public class InvoiceService {
                 throw new IllegalArgumentException("El archivo de la Orden de Compra es obligatorio para ventas a Gobierno.");
             }
 
-            // Formato exacto solicitado por la Sra. Mirna
             String governmentObservation = String.format(
                 "Orden de Compra: %s OC %s /SIAF %s / UE %s / monto S/ %.2f // comision %s%% + S/ %.2f",
                 client.getBusinessName(),

@@ -31,6 +31,9 @@ public class CreateSaleInvoiceRequest {
 
     private boolean isDelivered = false;
 
+    // --- CAMPO PARA RETAIL (H5) ---
+    private boolean creditApprovedByManagement = false;
+
     // --- CAMPOS PARA GOBIERNO (H3) ---
     private String siafCode;
     private String unidadEjecutora;
