@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -45,15 +46,16 @@ public class InvoiceService {
                 throw new IllegalArgumentException("El archivo de la Orden de Compra es obligatorio para ventas a Gobierno.");
             }
 
+            // Formato exacto solicitado por la Sra. Mirna
             String governmentObservation = String.format(
                 "Orden de Compra: %s OC %s /SIAF %s / UE %s / monto S/ %.2f // comision %s%% + S/ %.2f",
                 client.getBusinessName(),
-                request.getOcNumber(),
+                Objects.toString(request.getOcNumber(), ""),
                 request.getSiafCode(),
                 request.getUnidadEjecutora(),
                 request.getTotalAmount(),
-                request.getCommissionPercentage() != null ? request.getCommissionPercentage().toString() : "0",
-                request.getCommissionAmount() != null ? request.getCommissionAmount() : BigDecimal.ZERO
+                Objects.toString(request.getCommissionPercentage(), "0"),
+                Objects.toString(request.getCommissionAmount(), "0.00")
             );
             finalObservations = governmentObservation + "\n" + finalObservations;
         }
